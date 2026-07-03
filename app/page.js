@@ -462,7 +462,7 @@ function ReplyContent({ text }) {
   return (
     <div>
       {cleanText && <div className="serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: "var(--text)", marginBottom: 10 }}>{cleanText}</div>}
-      <img src={gifUrl} alt="reaction gif" style={{ maxWidth: "100%", borderRadius: 12, display: "block" }} />
+      <img src={gifUrl} alt="reaction gif" loading="lazy" style={{ maxWidth: "260px", width: "100%", borderRadius: 12, display: "block" }} />
       <div className="mono" style={{ fontSize: 9, color: "var(--text-faint)", marginTop: 4, textAlign: "right" }}>via GIPHY</div>
     </div>
   );
