@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import BeanBuddy from "./BeanBuddy";
+import BruIntro from "./BruIntro";
 
 const TALK_API = "https://sayantan17-resonance.hf.space/talk";
 const TEXT_API = "https://sayantan17-resonance.hf.space/chat";
@@ -235,6 +236,7 @@ export default function Home() {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "var(--bg)", position: "relative", overflow: "hidden" }}>
+      <BruIntro />
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}>
         {[...Array(9)].map((_, i) => (
           <span key={i} className="bean" style={{ left: (8 + i * 11) + "%", animationDelay: i * 2.3 + "s", animationDuration: (16 + i * 2) + "s" }}>
