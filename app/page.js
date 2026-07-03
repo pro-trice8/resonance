@@ -2,12 +2,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import BeanBuddy from "./BeanBuddy";
 
-const TALK_API = "https://sayantan17-resonance.hf.space/talk";
-const TEXT_API = "https://sayantan17-resonance.hf.space/chat";
+const TALK_API = "http://localhost:8080/talk";
+const TEXT_API = "http://localhost:8080/chat";
 const STAGES = ["Hearing", "Feeling", "Thinking", "Speaking"];
 
 const EMOTION_COLORS = {
-  angry: "#e0654a", happy: "#e0a838", sad: "F#6b93c9",
+  angry: "#e0654a", happy: "#e0a838", sad: "#6b93c9",
   neutral: "#b9a693", fear: "#b183d6", disgust: "#8bb56a",
 };
 
@@ -284,30 +284,7 @@ export default function Home() {
             );
           })}
         </div>
-        {/* provider toggle */}
-        <div style={{ padding: "10px 16px", borderTop: "1px solid var(--line)" }}>
-          <div className="mono" style={{ fontSize: 9.5, color: "var(--text-faint)", letterSpacing: "0.08em", marginBottom: 7 }}>BRAIN</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {["groq", "gemini"].map((p) => (
-              <button key={p} onClick={() => setProvider(p)}
-                className="mono" style={{ flex: 1, fontSize: 11, padding: "7px", borderRadius: 7, cursor: "pointer", textTransform: "capitalize", border: "1px solid " + (provider === p ? "var(--accent)" : "var(--line-2)"), background: provider === p ? "rgba(217,144,88,0.15)" : "transparent", color: provider === p ? "var(--accent)" : "var(--text-dim)" }}>
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-        {/* voice toggle */}
-        <div style={{ padding: "10px 16px", borderTop: "1px solid var(--line)" }}>
-          <div className="mono" style={{ fontSize: 9.5, color: "var(--text-faint)", letterSpacing: "0.08em", marginBottom: 7 }}>VOICE</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {[["piper", "Piper"], ["eleven", "ElevenLabs"]].map(([v, label]) => (
-              <button key={v} onClick={() => setVoice(v)}
-                className="mono" style={{ flex: 1, fontSize: 10.5, padding: "7px", borderRadius: 7, cursor: "pointer", border: "1px solid " + (voice === v ? "var(--accent)" : "var(--line-2)"), background: voice === v ? "rgba(217,144,88,0.15)" : "transparent", color: voice === v ? "var(--accent)" : "var(--text-dim)" }}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
+
         <div className="mono" style={{ padding: "13px 16px", fontSize: 9.5, color: "var(--text-faint)", borderTop: "1px solid var(--line)", letterSpacing: "0.03em", lineHeight: 1.7 }}>
           7-MODEL ENSEMBLE &middot; WAV2VEC2<br />GROQ &middot; GEMINI &middot; WHISPER
         </div>
@@ -362,7 +339,7 @@ export default function Home() {
                         {turn.gender && turn.gender !== "\u2014" && <Tag>{turn.gender}</Tag>}
                         <button onClick={() => setOpenInsights(openInsights === i ? null : i)}
                           className="mono" style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--line-2)", background: "transparent", color: "var(--text-faint)", cursor: "pointer" }}>
-                          {openInsights === i ? "hide" : "models \u25be"}
+                          {openInsights === i ? "hide" : "models ▾"}
                         </button>
                       </div>
                     )}
@@ -384,7 +361,7 @@ export default function Home() {
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {STAGES.map((s, i) => (
                     <div key={s} className="mono" style={{ fontSize: 11, padding: "6px 11px", borderRadius: 7, border: "1px solid " + (i <= stage ? "var(--accent-deep)" : "var(--line)"), background: i <= stage ? "rgba(217,144,88,0.12)" : "var(--panel)", color: i <= stage ? "var(--accent)" : "var(--text-faint)", transition: "all 0.3s" }}>
-                      {s}{i === stage ? "\u2026" : ""}
+                      {s}{i === stage ? "..." : ""}
                     </div>
                   ))}
                 </div>
@@ -393,30 +370,64 @@ export default function Home() {
           </div>
         </div>
 
-        <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg-2)", padding: "16px 24px 20px" }}>
-          <div style={{ maxWidth: 680, margin: "0 auto" }}>
-            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+        <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg-2)", padding: "16px 24px 22px" }}>
+          <div style={{ maxWidth: 720, margin: "0 auto" }}>
+            <div style={{ border: "1px solid var(--line-2)", borderRadius: 18, background: "var(--panel)", padding: "12px 14px 10px", boxShadow: recording ? "0 0 28px var(--glow)" : "none", transition: "box-shadow 0.4s" }}>
+              {/* text input row */}
               <input value={textInput} onChange={(e) => setTextInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") sendText(); }}
-                placeholder="Type a message, or speak below..." disabled={busy}
-                style={{ flex: 1, padding: "12px 16px", fontSize: 14.5, border: "1px solid var(--line-2)", borderRadius: 12, background: "var(--panel)", color: "var(--text)", outline: "none" }} />
-              <button onClick={sendText} disabled={busy || !textInput.trim()}
-                style={{ padding: "0 18px", height: 44, border: "none", borderRadius: 12, cursor: busy || !textInput.trim() ? "default" : "pointer", background: textInput.trim() && !busy ? "var(--panel-3)" : "var(--panel)", color: textInput.trim() ? "var(--text)" : "var(--text-faint)", fontWeight: 600, fontSize: 14 }}>Send</button>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 2.5, height: 46, flex: 1, overflow: "hidden", padding: "0 16px", borderRadius: 12, background: "var(--panel)", border: "1px solid var(--line)", boxShadow: recording ? "0 0 24px var(--glow) inset" : "none", transition: "box-shadow 0.4s" }}>
-                {bars.map((h, i) => (
-                  <span key={i} style={{ width: 2.5, height: Math.max(3, h * 34), background: recording ? "var(--accent)" : busy ? "var(--accent-2)" : "var(--line-2)", borderRadius: 4, transition: "height 0.08s ease, background 0.4s", opacity: recording || busy ? 1 : 0.7 }} />
-                ))}
+                placeholder="Message Bru, or speak below..." disabled={busy}
+                style={{ width: "100%", padding: "6px 8px 10px", fontSize: 15, border: "none", background: "transparent", color: "var(--text)", outline: "none" }} />
+              {/* controls row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {/* upload */}
+                <button onClick={() => fileRef.current?.click()} disabled={busy} title="Upload a clip"
+                  style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--line-2)", background: "transparent", color: "var(--text-dim)", fontSize: 18, cursor: busy ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: busy ? 0.4 : 1 }}>+</button>
+                <input ref={fileRef} type="file" accept="audio/*" style={{ display: "none" }} onChange={(e) => e.target.files[0] && sendAudio(e.target.files[0])} />
+
+                {/* brain dropdown */}
+                <div style={{ position: "relative" }}>
+                  <select value={provider} onChange={(e) => setProvider(e.target.value)}
+                    className="mono" style={{ appearance: "none", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--panel-2)", color: "var(--text-dim)", fontSize: 11.5, padding: "6px 24px 6px 10px", cursor: "pointer", outline: "none" }}>
+                    <option value="groq">Groq</option>
+                    <option value="gemini">Gemini</option>
+                  </select>
+                  <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--text-faint)", fontSize: 9 }}>▾</span>
+                </div>
+
+                {/* voice dropdown */}
+                <div style={{ position: "relative" }}>
+                  <select value={voice} onChange={(e) => setVoice(e.target.value)}
+                    className="mono" style={{ appearance: "none", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--panel-2)", color: "var(--text-dim)", fontSize: 11.5, padding: "6px 24px 6px 10px", cursor: "pointer", outline: "none" }}>
+                    <option value="piper">Piper</option>
+                    <option value="eleven">ElevenLabs</option>
+                  </select>
+                  <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--text-faint)", fontSize: 9 }}>▾</span>
+                </div>
+
+                {/* mini waveform */}
+                <div style={{ display: "flex", alignItems: "center", gap: 1.5, height: 26, flex: 1, overflow: "hidden", justifyContent: "center" }}>
+                  {bars.slice(0, 28).map((h, i) => (
+                    <span key={i} style={{ width: 2, height: Math.max(3, h * 22), background: recording ? "var(--accent)" : busy ? "var(--accent-2)" : "var(--line-2)", borderRadius: 3, transition: "height 0.08s ease, background 0.4s", opacity: recording || busy ? 1 : 0.55 }} />
+                  ))}
+                </div>
+
+                {/* text send (when typing) */}
+                {textInput.trim() && !recording && (
+                  <button onClick={sendText} disabled={busy}
+                    style={{ height: 34, padding: "0 16px", borderRadius: 17, border: "none", background: "var(--panel-3)", color: "var(--text)", fontWeight: 600, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>Send</button>
+                )}
+
+                {/* speak / stop */}
+                <button onClick={recording ? stopRecording : startRecording} disabled={busy}
+                  title={recording ? "Stop & send" : "Speak"}
+                  style={{ height: 34, padding: recording ? "0 16px" : "0", width: recording ? "auto" : 34, borderRadius: 17, border: "none", cursor: busy ? "default" : "pointer", background: recording ? "#c0472e" : busy ? "var(--panel-2)" : "linear-gradient(135deg, var(--accent), var(--accent-2))", color: recording || !busy ? "#241812" : "var(--text-faint)", opacity: busy ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexShrink: 0, fontWeight: 600, fontSize: 13, boxShadow: !busy && !recording ? "0 0 16px var(--glow)" : "none" }}>
+                  {recording ? (<><span style={{ width: 8, height: 8, borderRadius: 2, background: "#fff" }} /> Stop</>) : busy ? "..." : (<span style={{ fontSize: 15 }}>🎙</span>)}
+                </button>
               </div>
-              <button onClick={() => fileRef.current?.click()} disabled={busy} title="Upload a clip"
-                style={{ width: 46, height: 46, border: "1px solid var(--line-2)", borderRadius: 12, cursor: busy ? "default" : "pointer", background: "var(--panel)", color: "var(--text-dim)", fontSize: 17, opacity: busy ? 0.4 : 1, flexShrink: 0 }}>&uarr;</button>
-              <input ref={fileRef} type="file" accept="audio/*" style={{ display: "none" }} onChange={(e) => e.target.files[0] && sendAudio(e.target.files[0])} />
-              <button onClick={recording ? stopRecording : startRecording} disabled={busy}
-                style={{ fontWeight: 600, fontSize: 14, padding: "0 24px", height: 46, border: "none", borderRadius: 12, cursor: busy ? "default" : "pointer", background: recording ? "#c0472e" : busy ? "var(--panel-2)" : "linear-gradient(135deg, var(--accent), var(--accent-2))", color: recording || !busy ? "#241812" : "var(--text-faint)", opacity: busy ? 0.7 : 1, whiteSpace: "nowrap", flexShrink: 0, display: "flex", alignItems: "center", gap: 8, boxShadow: !busy && !recording ? "0 0 18px var(--glow)" : "none" }}>
-                <span style={{ width: 8, height: 8, borderRadius: recording ? 2 : "50%", background: recording ? "#fff" : "#241812", display: "inline-block" }} />
-                {busy ? "Brewing..." : recording ? "Stop & send" : "Speak"}
-              </button>
+            </div>
+            <div className="mono" style={{ fontSize: 9, color: "var(--text-faint)", textAlign: "center", marginTop: 8, letterSpacing: "0.04em" }}>
+              7-model ensemble · Wav2Vec2 · {provider === "groq" ? "Groq" : "Gemini"} · {voice === "eleven" ? "ElevenLabs" : "Piper"}
             </div>
           </div>
         </div>
@@ -427,27 +438,12 @@ export default function Home() {
 }
 
 function ReplyContent({ text }) {
-  // detect either [GIF]url[/GIF] marker OR a raw giphy URL
-  let gifUrl = null;
-  const marker = text.match(/\[GIF\](.*?)\[\/GIF\]/);
-  if (marker) {
-    gifUrl = marker[1];
-  } else {
-    const raw = text.match(/https?:\/\/[^\s]*giphy\.com\/[^\s]+\.gif/i);
-    if (raw) gifUrl = raw[0];
-  }
-
-  if (!gifUrl) {
+  const match = text.match(/\[GIF\](.*?)\[\/GIF\]/);
+  if (!match) {
     return <div className="serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: "var(--text)" }}>{text}</div>;
   }
-
-  // remove the marker/URL and any leftover instruction text from the visible message
-  const cleanText = text
-    .replace(/\[GIF\].*?\[\/GIF\]/, "")
-    .replace(/https?:\/\/[^\s]*giphy\.com\/[^\s]+\.gif/i, "")
-    .replace(/\(You found a GIF.*?\)/, "")
-    .trim();
-
+  const gifUrl = match[1];
+  const cleanText = text.replace(/\[GIF\].*?\[\/GIF\]/, "").replace(/\(You found a GIF.*?\)/, "").trim();
   return (
     <div>
       {cleanText && <div className="serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: "var(--text)", marginBottom: 10 }}>{cleanText}</div>}
@@ -466,7 +462,7 @@ function Tag({ children, color, filled }) {
 
 function ModelInsights({ turn }) {
   const rows = [
-    { name: "Ensemble (SVM\u00b7RF\u00b7XGB\u00b7CNN)", val: turn.ensemble_emotion || turn.emotion, conf: null },
+    { name: "Ensemble (SVM·RF·XGB·CNN)", val: turn.ensemble_emotion || turn.emotion, conf: null },
     { name: "Wav2Vec2 transformer", val: turn.wav2vec_emotion, conf: turn.wav2vec_confidence },
     { name: "Gender ensemble", val: turn.gender, conf: null },
   ];
