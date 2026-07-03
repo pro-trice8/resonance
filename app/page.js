@@ -7,7 +7,7 @@ const TEXT_API = "https://sayantan17-resonance.hf.space/chat";
 const STAGES = ["Hearing", "Feeling", "Thinking", "Speaking"];
 
 const EMOTION_COLORS = {
-  angry: "#e0654a", happy: "#e0a838", sad: "#6b93c9",
+  angry: "#e0654a", happy: "#e0a838", sad: "F#6b93c9",
   neutral: "#b9a693", fear: "#b183d6", disgust: "#8bb56a",
 };
 
@@ -427,12 +427,27 @@ export default function Home() {
 }
 
 function ReplyContent({ text }) {
-  const match = text.match(/\[GIF\](.*?)\[\/GIF\]/);
-  if (!match) {
+  // detect either [GIF]url[/GIF] marker OR a raw giphy URL
+  let gifUrl = null;
+  const marker = text.match(/\[GIF\](.*?)\[\/GIF\]/);
+  if (marker) {
+    gifUrl = marker[1];
+  } else {
+    const raw = text.match(/https?:\/\/[^\s]*giphy\.com\/[^\s]+\.gif/i);
+    if (raw) gifUrl = raw[0];
+  }
+
+  if (!gifUrl) {
     return <div className="serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: "var(--text)" }}>{text}</div>;
   }
-  const gifUrl = match[1];
-  const cleanText = text.replace(/\[GIF\].*?\[\/GIF\]/, "").replace(/\(You found a GIF.*?\)/, "").trim();
+
+  // remove the marker/URL and any leftover instruction text from the visible message
+  const cleanText = text
+    .replace(/\[GIF\].*?\[\/GIF\]/, "")
+    .replace(/https?:\/\/[^\s]*giphy\.com\/[^\s]+\.gif/i, "")
+    .replace(/\(You found a GIF.*?\)/, "")
+    .trim();
+
   return (
     <div>
       {cleanText && <div className="serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: "var(--text)", marginBottom: 10 }}>{cleanText}</div>}
