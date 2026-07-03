@@ -71,6 +71,8 @@ export default function Home() {
   const [convos, setConvos] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [search, setSearch] = useState("");
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameText, setRenameText] = useState("");
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState(-1);
@@ -124,6 +126,18 @@ export default function Home() {
       if (id === activeId) setActiveId(next[0]?.id || null);
       return next;
     });
+  }
+
+  function startRename(c, e) {
+    e.stopPropagation();
+    setRenamingId(c.id);
+    setRenameText(c.title);
+  }
+  function commitRename(id) {
+    const t = renameText.trim();
+    setConvos((prev) => prev.map((c) => (c.id === id ? { ...c, title: t || c.title } : c)));
+    setRenamingId(null);
+    setRenameText("");
   }
 
   function buildHistory(convo) {
@@ -277,11 +291,29 @@ export default function Home() {
                 onMouseLeave={(e) => { if (c.id !== activeId) e.currentTarget.style.background = "transparent"; e.currentTarget.querySelector(".del").style.opacity = 0; }}>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: EMOTION_COLORS[em] || "var(--text-faint)", flexShrink: 0, boxShadow: em ? "0 0 6px " + (EMOTION_COLORS[em] || "transparent") : "none" }} />
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.id === activeId ? "var(--text)" : "var(--text-dim)" }}>{c.title}</div>
+                  {renamingId === c.id ? (
+                    <input
+                      autoFocus
+                      value={renameText}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setRenameText(e.target.value)}
+                      onBlur={() => commitRename(c.id)}
+                      onKeyDown={(e) => { if (e.key === "Enter") commitRename(c.id); if (e.key === "Escape") { setRenamingId(null); setRenameText(""); } }}
+                      style={{ width: "100%", fontSize: 13, fontWeight: 500, padding: "2px 6px", borderRadius: 6, border: "1px solid var(--accent)", background: "var(--bg-2)", color: "var(--text)", outline: "none" }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.id === activeId ? "var(--text)" : "var(--text-dim)" }}>{c.title}</div>
+                  )}
                   <div className="mono" style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>{c.turns.length} turn{c.turns.length !== 1 ? "s" : ""}</div>
                 </div>
-                <button className="del" onClick={(e) => deleteConversation(c.id, e)}
-                  style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 15, opacity: 0, transition: "opacity 0.15s", flexShrink: 0, lineHeight: 1 }}>&times;</button>
+                {renamingId !== c.id && (
+                  <div className="del" style={{ display: "flex", gap: 4, opacity: 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+                    <button onClick={(e) => startRename(c, e)} title="Rename"
+                      style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 12, lineHeight: 1, padding: 2 }}>&#9998;</button>
+                    <button onClick={(e) => deleteConversation(c.id, e)} title="Delete"
+                      style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 15, lineHeight: 1, padding: 2 }}>&times;</button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -462,7 +494,7 @@ function ReplyContent({ text }) {
   return (
     <div>
       {cleanText && <div className="serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: "var(--text)", marginBottom: 10 }}>{cleanText}</div>}
-      <img src={gifUrl} alt="reaction gif" loading="lazy" style={{ maxWidth: "260px", width: "100%", borderRadius: 12, display: "block" }} />
+      <img src={gifUrl} alt="reaction gif" style={{ maxWidth: "100%", borderRadius: 12, display: "block" }} />
       <div className="mono" style={{ fontSize: 9, color: "var(--text-faint)", marginTop: 4, textAlign: "right" }}>via GIPHY</div>
     </div>
   );
