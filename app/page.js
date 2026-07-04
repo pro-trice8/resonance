@@ -80,6 +80,8 @@ export default function Home() {
   const [textInput, setTextInput] = useState("");
   const [openInsights, setOpenInsights] = useState(null);
   const [provider, setProvider] = useState("groq");
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [voice, setVoice] = useState("piper");
 
   const mediaRef = useRef(null);
@@ -95,6 +97,13 @@ export default function Home() {
     if (c.length) setActiveId(c[0].id);
   }, []);
   useEffect(() => { if (convos.length) saveConvos(convos); }, [convos]);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const active = convos.find((c) => c.id === activeId) || null;
   const currentMood = active?.turns?.[active.turns.length - 1]?.emotion || "neutral";
@@ -117,6 +126,7 @@ export default function Home() {
     const id = Date.now().toString();
     setConvos((c) => [{ id, title: "New conversation", turns: [], created: Date.now() }, ...c]);
     setActiveId(id);
+    if (typeof window !== "undefined" && window.innerWidth < 768) setSidebarOpen(false);
   }
   function deleteConversation(id, e) {
     e.stopPropagation();
@@ -259,7 +269,17 @@ export default function Home() {
         ))}
       </div>
 
-      <aside style={{ width: 268, background: "var(--bg-2)", borderRight: "1px solid var(--line)", display: "flex", flexDirection: "column", flexShrink: 0, position: "relative", zIndex: 1 }}>
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }} />
+      )}
+      <aside style={{
+        width: 268, background: "var(--bg-2)", borderRight: "1px solid var(--line)",
+        display: "flex", flexDirection: "column", flexShrink: 0,
+        position: isMobile ? "fixed" : "relative", zIndex: 50, height: "100%",
+        left: isMobile ? (sidebarOpen ? 0 : -280) : 0,
+        transition: "left 0.28s ease",
+        top: 0,
+      }}>
         <div style={{ padding: "18px 16px 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
             <Bru size={30} mood="happy" />
@@ -285,7 +305,7 @@ export default function Home() {
           ) : filtered.map((c) => {
             const em = c.turns[c.turns.length - 1]?.emotion;
             return (
-              <div key={c.id} onClick={() => setActiveId(c.id)} className="fade-in"
+              <div key={c.id} onClick={() => { setActiveId(c.id); if (isMobile) setSidebarOpen(false); }} className="fade-in"
                 style={{ padding: "10px 11px", marginBottom: 3, borderRadius: 9, cursor: "pointer", background: c.id === activeId ? "var(--panel)" : "transparent", display: "flex", alignItems: "center", gap: 10, transition: "background 0.15s" }}
                 onMouseEnter={(e) => { if (c.id !== activeId) e.currentTarget.style.background = "var(--panel)"; e.currentTarget.querySelector(".del").style.opacity = 1; }}
                 onMouseLeave={(e) => { if (c.id !== activeId) e.currentTarget.style.background = "transparent"; e.currentTarget.querySelector(".del").style.opacity = 0; }}>
@@ -324,7 +344,13 @@ export default function Home() {
         </div>
       </aside>
 
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "radial-gradient(ellipse 70% 55% at 50% -5%, #2a1d15 0%, var(--bg) 55%)", position: "relative", zIndex: 1 }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, width: "100%", background: "radial-gradient(ellipse 70% 55% at 50% -5%, #2a1d15 0%, var(--bg) 55%)", position: "relative", zIndex: 1 }}>
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(true)}
+            style={{ position: "absolute", top: 12, left: 12, zIndex: 30, width: 38, height: 38, borderRadius: 10, border: "1px solid var(--line-2)", background: "var(--panel-2)", color: "var(--text)", fontSize: 18, cursor: "pointer" }}>
+            &#9776;
+          </button>
+        )}
         {timeline.length > 0 && (
           <div style={{ borderBottom: "1px solid var(--line)", padding: "10px 24px", display: "flex", alignItems: "center", gap: 14, background: "rgba(26,19,16,0.6)", backdropFilter: "blur(8px)" }}>
             <span className="mono" style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>MOOD ARC</span>
@@ -339,9 +365,11 @@ export default function Home() {
           </div>
         )}
 
-        <div style={{ position: "absolute", right: 20, bottom: 130, zIndex: 2, pointerEvents: "none", opacity: 0.96 }}>
-          <BeanBuddy mood={currentMood} size={130} />
-        </div>
+        {!isMobile && (
+          <div style={{ position: "absolute", right: 20, bottom: 130, zIndex: 2, pointerEvents: "none", opacity: 0.96 }}>
+            <BeanBuddy mood={currentMood} size={130} />
+          </div>
+        )}
 
         <div ref={threadRef} style={{ flex: 1, overflowY: "auto", padding: "30px 24px 20px" }}>
           <div style={{ maxWidth: 680, margin: "0 auto" }}>
