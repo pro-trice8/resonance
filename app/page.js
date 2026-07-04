@@ -218,7 +218,7 @@ export default function Home() {
       const data = await res.json();
       setStage(-1); setBusy(false);
       if (data.error) { alert("Error: " + data.error); return; }
-      appendTurn(cid, { transcript: msg, emotion: "neutral", gender: "\u2014", reply: data.reply, typed: true });
+      appendTurn(cid, { transcript: msg, emotion: "neutral", gender: "—", reply: data.reply, typed: true });
     } catch {
       setStage(-1); setBusy(false);
       alert("Couldn't reach the agent (text). Make sure the /chat endpoint exists.");
@@ -258,236 +258,262 @@ export default function Home() {
   );
   const timeline = (active?.turns || []).map((t) => t.emotion).filter(Boolean);
 
-  return (
-    <div style={{ display: "flex", height: "100vh", background: "var(--bg)", position: "relative", overflow: "hidden" }}>
-      <BruIntro />
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-        {[...Array(9)].map((_, i) => (
-          <span key={i} className="bean" style={{ left: (8 + i * 11) + "%", animationDelay: i * 2.3 + "s", animationDuration: (16 + i * 2) + "s" }}>
-            <svg width="16" height="20" viewBox="0 0 16 20"><ellipse cx="8" cy="10" rx="6" ry="9" fill="#3d2c22" /><path d="M 8 2 Q 11 10 8 18" stroke="#2a1e18" strokeWidth="1.5" fill="none" /></svg>
-          </span>
-        ))}
-      </div>
+  const sendStarter = useCallback(async (msg) => {
+    if (!msg || busy) return;
+    const { convo, cid } = ensureConvo();
+    setBusy(true); setStage(2);
+    try {
+      const res = await fetch(TEXT_API, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: msg, history: buildHistory(convo), provider }),
+      });
+      const data = await res.json();
+      setStage(-1); setBusy(false);
+      if (data.error) { alert("Error: " + data.error); return; }
+      appendTurn(cid, { transcript: msg, emotion: "neutral", gender: "—", reply: data.reply, typed: true });
+    } catch {
+      setStage(-1); setBusy(false);
+      alert("Couldn't reach the agent (text).");
+    }
+  }, [busy, active, activeId, provider]);
 
+  const STARTERS = [
+    "I've had a rough day and could use a pick-me-up.",
+    "Tell me a joke to cheer me up!",
+    "I'm feeling really excited about something.",
+    "Share a random fun fact with me.",
+  ];
+
+  function replayTour() {
+    try { localStorage.removeItem("resonance_intro_seen"); } catch {}
+    window.location.reload();
+  }
+
+  return (
+    <div style={{ display: "flex", height: "100vh", background: "#17110d", position: "relative", overflow: "hidden", color: "var(--text)" }}>
+      <BruIntro />
+
+      {/* mobile overlay */}
       {isMobile && sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }} />
+        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 40 }} />
       )}
+
+      {/* SIDEBAR */}
       <aside style={{
-        width: 268, background: "var(--bg-2)", borderRight: "1px solid var(--line)",
+        width: 272, background: "#120d0a", borderRight: "1px solid rgba(255,255,255,0.06)",
         display: "flex", flexDirection: "column", flexShrink: 0,
         position: isMobile ? "fixed" : "relative", zIndex: 50, height: "100%",
-        left: isMobile ? (sidebarOpen ? 0 : -280) : 0,
-        transition: "left 0.28s ease",
-        top: 0,
+        left: isMobile ? (sidebarOpen ? 0 : -290) : 0, top: 0, transition: "left 0.28s ease",
       }}>
-        <div style={{ padding: "18px 16px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <Bru size={30} mood="happy" />
-            <span className="serif" style={{ fontWeight: 900, fontSize: 19, letterSpacing: "-0.01em", color: "var(--cream)" }}>Resonance</span>
+        <div style={{ padding: "20px 18px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(140deg, #3a2a1e, #241812)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Bru size={24} mood="happy" />
           </div>
-          <button onClick={newConversation}
-            style={{ width: "100%", fontWeight: 600, fontSize: 13.5, padding: "11px", border: "1px solid var(--line-2)", borderRadius: 10, cursor: "pointer", background: "var(--panel-2)", color: "var(--text)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, transition: "all 0.18s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--panel-3)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--panel-2)"; }}>
-            <span style={{ fontSize: 16, lineHeight: 1, color: "var(--accent)" }}>+</span> New conversation
-          </button>
-          <div style={{ position: "relative", marginTop: 10 }}>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search"
-              className="mono" style={{ width: "100%", padding: "9px 11px 9px 30px", fontSize: 12, border: "1px solid var(--line)", borderRadius: 10, background: "var(--panel)", color: "var(--text)", outline: "none" }} />
-            <span className="mono" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "var(--text-faint)" }}>&#9906;</span>
+          <div>
+            <div className="serif" style={{ fontWeight: 900, fontSize: 20, lineHeight: 1, color: "#f2e8dd" }}>Resonance</div>
+            <div className="mono" style={{ fontSize: 10.5, color: "var(--text-faint)", marginTop: 3 }}>chats with Bru</div>
           </div>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "2px 8px 16px" }}>
+
+        <div style={{ padding: "0 14px" }}>
+          <button onClick={newConversation}
+            style={{ width: "100%", fontWeight: 600, fontSize: 14, padding: "13px", border: "none", borderRadius: 14, cursor: "pointer", background: "linear-gradient(140deg, #4a3526, #2f2016)", color: "#f2e8dd", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>
+            <span style={{ fontSize: 17, lineHeight: 1 }}>+</span> New conversation
+          </button>
+          <div style={{ position: "relative", marginTop: 12 }}>
+            <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)", fontSize: 13 }}>&#9906;</span>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search chats"
+              style={{ width: "100%", padding: "11px 13px 11px 34px", fontSize: 13, border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, background: "rgba(255,255,255,0.03)", color: "var(--text)", outline: "none" }} />
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "14px 10px" }}>
           {filtered.length === 0 ? (
-            <div className="mono" style={{ fontSize: 11.5, color: "var(--text-faint)", padding: "14px 12px", textAlign: "center", lineHeight: 1.7, whiteSpace: "pre-line" }}>
-              {convos.length === 0 ? "No conversations yet.\nSpeak to begin." : "No matches"}
+            <div style={{ fontSize: 13, color: "var(--text-faint)", padding: "18px 14px", textAlign: "center", lineHeight: 1.6 }}>
+              No saved chats yet. Start talking to Bru!
             </div>
           ) : filtered.map((c) => {
             const em = c.turns[c.turns.length - 1]?.emotion;
             return (
-              <div key={c.id} onClick={() => { setActiveId(c.id); if (isMobile) setSidebarOpen(false); }} className="fade-in"
-                style={{ padding: "10px 11px", marginBottom: 3, borderRadius: 9, cursor: "pointer", background: c.id === activeId ? "var(--panel)" : "transparent", display: "flex", alignItems: "center", gap: 10, transition: "background 0.15s" }}
-                onMouseEnter={(e) => { if (c.id !== activeId) e.currentTarget.style.background = "var(--panel)"; e.currentTarget.querySelector(".del").style.opacity = 1; }}
-                onMouseLeave={(e) => { if (c.id !== activeId) e.currentTarget.style.background = "transparent"; e.currentTarget.querySelector(".del").style.opacity = 0; }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: EMOTION_COLORS[em] || "var(--text-faint)", flexShrink: 0, boxShadow: em ? "0 0 6px " + (EMOTION_COLORS[em] || "transparent") : "none" }} />
+              <div key={c.id} onClick={() => { setActiveId(c.id); if (isMobile) setSidebarOpen(false); }}
+                style={{ padding: "11px 12px", marginBottom: 4, borderRadius: 12, cursor: "pointer", background: c.id === activeId ? "rgba(255,255,255,0.05)" : "transparent", display: "flex", alignItems: "center", gap: 10, transition: "background 0.15s" }}
+                onMouseEnter={(e) => { if (c.id !== activeId) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; const d = e.currentTarget.querySelector(".rowtools"); if (d) d.style.opacity = 1; }}
+                onMouseLeave={(e) => { if (c.id !== activeId) e.currentTarget.style.background = "transparent"; const d = e.currentTarget.querySelector(".rowtools"); if (d) d.style.opacity = 0; }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: EMOTION_COLORS[em] || "var(--text-faint)", flexShrink: 0 }} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   {renamingId === c.id ? (
-                    <input
-                      autoFocus
-                      value={renameText}
+                    <input autoFocus value={renameText}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => setRenameText(e.target.value)}
                       onBlur={() => commitRename(c.id)}
                       onKeyDown={(e) => { if (e.key === "Enter") commitRename(c.id); if (e.key === "Escape") { setRenamingId(null); setRenameText(""); } }}
-                      style={{ width: "100%", fontSize: 13, fontWeight: 500, padding: "2px 6px", borderRadius: 6, border: "1px solid var(--accent)", background: "var(--bg-2)", color: "var(--text)", outline: "none" }}
-                    />
+                      style={{ width: "100%", fontSize: 13, fontWeight: 500, padding: "2px 6px", borderRadius: 6, border: "1px solid var(--accent)", background: "#1a1310", color: "var(--text)", outline: "none" }} />
                   ) : (
-                    <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.id === activeId ? "var(--text)" : "var(--text-dim)" }}>{c.title}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.id === activeId ? "#f2e8dd" : "var(--text-dim)" }}>{c.title}</div>
                   )}
                   <div className="mono" style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>{c.turns.length} turn{c.turns.length !== 1 ? "s" : ""}</div>
                 </div>
                 {renamingId !== c.id && (
-                  <div className="del" style={{ display: "flex", gap: 4, opacity: 0, transition: "opacity 0.15s", flexShrink: 0 }}>
-                    <button onClick={(e) => startRename(c, e)} title="Rename"
-                      style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 12, lineHeight: 1, padding: 2 }}>&#9998;</button>
-                    <button onClick={(e) => deleteConversation(c.id, e)} title="Delete"
-                      style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 15, lineHeight: 1, padding: 2 }}>&times;</button>
+                  <div className="rowtools" style={{ display: "flex", gap: 4, opacity: 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+                    <button onClick={(e) => startRename(c, e)} title="Rename" style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 12, padding: 2 }}>&#9998;</button>
+                    <button onClick={(e) => deleteConversation(c.id, e)} title="Delete" style={{ border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 15, padding: 2 }}>&times;</button>
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-
-        <div className="mono" style={{ padding: "13px 16px", fontSize: 9.5, color: "var(--text-faint)", borderTop: "1px solid var(--line)", letterSpacing: "0.03em", lineHeight: 1.7 }}>
-          7-MODEL ENSEMBLE &middot; WAV2VEC2<br />GROQ &middot; GEMINI &middot; WHISPER
+        <div style={{ padding: "13px 18px", fontSize: 11, color: "var(--text-faint)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          Chats are saved on this device.
         </div>
       </aside>
 
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, width: "100%", background: "radial-gradient(ellipse 70% 55% at 50% -5%, #2a1d15 0%, var(--bg) 55%)", position: "relative", zIndex: 1 }}>
-        {isMobile && (
-          <button onClick={() => setSidebarOpen(true)}
-            style={{ position: "absolute", top: 12, left: 12, zIndex: 30, width: 38, height: 38, borderRadius: 10, border: "1px solid var(--line-2)", background: "var(--panel-2)", color: "var(--text)", fontSize: 18, cursor: "pointer" }}>
-            &#9776;
-          </button>
-        )}
-        {timeline.length > 0 && (
-          <div style={{ borderBottom: "1px solid var(--line)", padding: "10px 24px", display: "flex", alignItems: "center", gap: 14, background: "rgba(26,19,16,0.6)", backdropFilter: "blur(8px)" }}>
-            <span className="mono" style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>MOOD ARC</span>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, flex: 1, height: 22 }}>
-              {timeline.map((em, i) => (
-                <div key={i} title={em} style={{ flex: 1, maxWidth: 40, height: 8 + (i % 3) * 4, borderRadius: 3, background: EMOTION_COLORS[em] || "var(--text-faint)", opacity: 0.85, alignSelf: "flex-end" }} />
+      {/* MAIN */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, width: "100%", position: "relative", background: "radial-gradient(120% 80% at 50% 0%, #2b1d13 0%, #17110d 55%)" }}>
+        {/* header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: isMobile ? "14px 16px 14px 60px" : "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(20,14,10,0.5)", backdropFilter: "blur(8px)" }}>
+          {isMobile && (
+            <button onClick={() => setSidebarOpen(true)} style={{ position: "absolute", left: 14, top: 12, width: 36, height: 36, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", color: "var(--text)", fontSize: 17, cursor: "pointer" }}>&#9776;</button>
+          )}
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: "linear-gradient(140deg, #3a2a1e, #241812)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Bru size={22} mood={currentMood} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="serif" style={{ fontWeight: 800, fontSize: 17, color: "#f2e8dd" }}>Chat with Bru</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#6fbf5a", display: "inline-block" }} />
+              Emotion-aware voice companion
+            </div>
+          </div>
+          {timeline.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, height: 20 }}>
+              {timeline.slice(-14).map((em, i) => (
+                <div key={i} title={em} style={{ width: 5, height: 8 + (i % 3) * 4, borderRadius: 2, background: EMOTION_COLORS[em] || "var(--text-faint)", opacity: 0.85, alignSelf: "flex-end" }} />
               ))}
             </div>
-            <span className="mono" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "capitalize", whiteSpace: "nowrap" }}>
-              now: <span style={{ color: EMOTION_COLORS[timeline[timeline.length - 1]] }}>{timeline[timeline.length - 1]}</span>
-            </span>
+          )}
+        </div>
+
+        {/* thread / welcome */}
+        <div ref={threadRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px" : "30px 24px", minHeight: 0 }}>
+          <div style={{ maxWidth: 720, margin: "0 auto" }}>
+            {(!active || active.turns.length === 0) && !busy ? (
+              <div className="fade-up" style={{ textAlign: "center", paddingTop: isMobile ? "6vh" : "8vh" }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}>
+                  <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", top: -6, left: -14, color: "#e0a838", fontSize: 20 }}>&#10022;</span>
+                    <span style={{ position: "absolute", top: -2, right: -14, color: "#e0a838", fontSize: 15 }}>&#10022;</span>
+                    <BeanBuddy mood="happy" size={110} />
+                  </div>
+                </div>
+                <h1 className="serif" style={{ fontWeight: 900, fontSize: isMobile ? "34px" : "46px", lineHeight: 1.05, letterSpacing: "-0.02em", margin: "0 0 14px", color: "#f4ece1" }}>
+                  Pull up a chair
+                </h1>
+                <p style={{ color: "var(--text-dim)", fontSize: 15.5, maxWidth: 440, margin: "0 auto 30px", lineHeight: 1.6 }}>
+                  Speak, type, or upload a clip. Bru listens for how you feel and replies out loud &mdash; with a little help from BeanBuddy.
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, maxWidth: 540, margin: "0 auto" }}>
+                  {STARTERS.map((sVal) => (
+                    <button key={sVal} onClick={() => sendStarter(sVal)}
+                      style={{ textAlign: "left", padding: "16px 18px", borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)", color: "var(--text)", fontSize: 14, lineHeight: 1.4, cursor: "pointer", transition: "all 0.15s" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.borderColor = "rgba(217,144,88,0.4)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}>
+                      {sVal}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={replayTour} className="mono" style={{ marginTop: 26, background: "transparent", border: "none", color: "var(--text-faint)", fontSize: 12.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  &#8635; Replay the tour
+                </button>
+              </div>
+            ) : (
+              <>
+                {active?.turns.map((turn, i) => (
+                  <div key={i} className="fade-up" style={{ marginBottom: 26 }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                      <div style={{ maxWidth: "80%" }}>
+                        <div style={{ background: "linear-gradient(135deg, #4a3526, #2f2016)", border: "1px solid rgba(255,255,255,0.08)", color: "#f2e8dd", padding: "12px 16px", borderRadius: "18px 18px 6px 18px", fontSize: 15, lineHeight: 1.5 }}>
+                          {turn.transcript || "(couldn't make out words)"}
+                        </div>
+                        {!turn.typed && (
+                          <div className="mono" style={{ display: "flex", gap: 7, justifyContent: "flex-end", marginTop: 7, flexWrap: "wrap", alignItems: "center" }}>
+                            <Tag color={EMOTION_COLORS[turn.emotion]} filled>{turn.emotion}</Tag>
+                            {turn.wav2vec_emotion && <Tag color={EMOTION_COLORS[turn.wav2vec_emotion]}>&#9671; {turn.wav2vec_emotion}{turn.wav2vec_confidence != null ? " " + Math.round(turn.wav2vec_confidence * 100) + "%" : ""}</Tag>}
+                            {turn.gender && turn.gender !== "—" && <Tag>{turn.gender}</Tag>}
+                            <button onClick={() => setOpenInsights(openInsights === i ? null : i)} className="mono" style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "var(--text-faint)", cursor: "pointer" }}>{openInsights === i ? "hide" : "models ▾"}</button>
+                          </div>
+                        )}
+                        {openInsights === i && !turn.typed && <ModelInsights turn={turn} />}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "flex-start", gap: 11, alignItems: "flex-end" }}>
+                      <Bru size={34} mood={turn.emotion || "neutral"} />
+                      <div style={{ maxWidth: "82%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", padding: "14px 18px", borderRadius: "6px 18px 18px 18px" }}>
+                        <ReplyContent text={turn.reply} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {busy && (
+                  <div className="fade-in" style={{ display: "flex", alignItems: "flex-end", gap: 11 }}>
+                    <Bru size={34} mood={currentMood} talking />
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {STAGES.map((sVal, i) => (
+                        <div key={sVal} className="mono" style={{ fontSize: 11, padding: "6px 11px", borderRadius: 8, border: "1px solid " + (i <= stage ? "var(--accent-deep)" : "rgba(255,255,255,0.08)"), background: i <= stage ? "rgba(217,144,88,0.12)" : "rgba(255,255,255,0.03)", color: i <= stage ? "var(--accent)" : "var(--text-faint)", transition: "all 0.3s" }}>
+                          {sVal}{i === stage ? "..." : ""}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* BeanBuddy floating (during active chat) */}
+        {active && active.turns.length > 0 && (
+          <div style={{ position: "absolute", right: isMobile ? 8 : 20, bottom: isMobile ? 150 : 170, zIndex: 2, pointerEvents: "none", opacity: 0.9 }}>
+            <BeanBuddy mood={currentMood} size={isMobile ? 58 : 96} />
           </div>
         )}
 
-        <div style={{ position: "absolute", right: isMobile ? 8 : 20, bottom: isMobile ? 96 : 130, zIndex: 2, pointerEvents: "none", opacity: 0.9 }}>
-          <BeanBuddy mood={currentMood} size={isMobile ? 62 : 130} />
-        </div>
-
-        <div ref={threadRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "56px 14px 16px" : "30px 24px 20px", minHeight: 0 }}>
-          <div style={{ maxWidth: 680, margin: "0 auto" }}>
-            {(!active || active.turns.length === 0) && !busy && (
-              <div className="fade-up" style={{ textAlign: "center", paddingTop: "9vh" }}>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-                  <Bru size={92} mood="happy" hero />
-                </div>
-                <h1 className="serif" style={{ fontWeight: 900, fontSize: "clamp(32px, 5vw, 54px)", lineHeight: 1.03, letterSpacing: "-0.03em", margin: "0 0 14px", color: "var(--cream)" }}>
-                  Hey, I'm Bru.<br />I hear <em style={{ fontStyle: "italic", color: "var(--accent)" }}>how</em> you feel.
-                </h1>
-                <p style={{ color: "var(--text-dim)", fontSize: 15.5, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 }}>
-                  Speak or type. I read your words and the emotion in your voice, then answer warmly &mdash; and watch my face, I change with your mood.
-                </p>
-              </div>
-            )}
-
-            {active?.turns.map((turn, i) => (
-              <div key={i} className="fade-up" style={{ marginBottom: 26 }}>
-                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-                  <div style={{ maxWidth: "80%" }}>
-                    <div style={{ background: "linear-gradient(135deg, var(--panel-3), var(--panel-2))", border: "1px solid var(--line-2)", color: "var(--text)", padding: "12px 16px", borderRadius: "16px 16px 5px 16px", fontSize: 15, lineHeight: 1.5 }}>
-                      {turn.transcript || "(couldn't make out words)"}
-                    </div>
-                    {!turn.typed && (
-                      <div className="mono" style={{ display: "flex", gap: 7, justifyContent: "flex-end", marginTop: 7, flexWrap: "wrap", alignItems: "center" }}>
-                        <Tag color={EMOTION_COLORS[turn.emotion]} filled>{turn.emotion}</Tag>
-                        {turn.wav2vec_emotion && <Tag color={EMOTION_COLORS[turn.wav2vec_emotion]}>&#9671; {turn.wav2vec_emotion}{turn.wav2vec_confidence != null ? " " + Math.round(turn.wav2vec_confidence * 100) + "%" : ""}</Tag>}
-                        {turn.gender && turn.gender !== "\u2014" && <Tag>{turn.gender}</Tag>}
-                        <button onClick={() => setOpenInsights(openInsights === i ? null : i)}
-                          className="mono" style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--line-2)", background: "transparent", color: "var(--text-faint)", cursor: "pointer" }}>
-                          {openInsights === i ? "hide" : "models ▾"}
-                        </button>
-                      </div>
-                    )}
-                    {openInsights === i && !turn.typed && <ModelInsights turn={turn} />}
-                  </div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "flex-start", gap: 11, alignItems: "flex-end" }}>
-                  <Bru size={34} mood={turn.emotion || "neutral"} />
-                  <div style={{ maxWidth: "82%", background: "var(--panel)", border: "1px solid var(--line)", padding: "14px 18px", borderRadius: "5px 16px 16px 16px" }}>
-                    <ReplyContent text={turn.reply} />
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {busy && (
-              <div className="fade-in" style={{ display: "flex", alignItems: "flex-end", gap: 11 }}>
-                <Bru size={34} mood={currentMood} talking />
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {STAGES.map((s, i) => (
-                    <div key={s} className="mono" style={{ fontSize: 11, padding: "6px 11px", borderRadius: 7, border: "1px solid " + (i <= stage ? "var(--accent-deep)" : "var(--line)"), background: i <= stage ? "rgba(217,144,88,0.12)" : "var(--panel)", color: i <= stage ? "var(--accent)" : "var(--text-faint)", transition: "all 0.3s" }}>
-                      {s}{i === stage ? "..." : ""}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg-2)", padding: isMobile ? "12px 12px calc(16px + env(safe-area-inset-bottom))" : "16px 24px 22px", flexShrink: 0 }}>
+        {/* COMPOSER */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(18,13,10,0.85)", backdropFilter: "blur(10px)", padding: isMobile ? "12px 12px calc(14px + env(safe-area-inset-bottom))" : "16px 24px 20px", flexShrink: 0 }}>
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
-            <div style={{ border: "1px solid var(--line-2)", borderRadius: 18, background: "var(--panel)", padding: isMobile ? "10px 10px 8px" : "12px 14px 10px", boxShadow: recording ? "0 0 28px var(--glow)" : "none", transition: "box-shadow 0.4s" }}>
-              {/* text input row */}
+            {/* pill toggles */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+              <span className="mono" style={{ fontSize: 11, color: "var(--text-faint)" }}>Brain</span>
+              {[["groq", "Groq"], ["gemini", "Gemini"]].map(([v, label]) => (
+                <button key={v} onClick={() => setProvider(v)} className="mono"
+                  style={{ fontSize: 11.5, padding: "5px 12px", borderRadius: 20, cursor: "pointer", border: "none", background: provider === v ? "#3a2a1e" : "transparent", color: provider === v ? "#f2e8dd" : "var(--text-faint)", fontWeight: provider === v ? 600 : 400 }}>{label}</button>
+              ))}
+              <span style={{ width: 1, height: 14, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
+              <span className="mono" style={{ fontSize: 11, color: "var(--text-faint)" }}>Voice</span>
+              {[["piper", "Piper"], ["eleven", "ElevenLabs"]].map(([v, label]) => (
+                <button key={v} onClick={() => setVoice(v)} className="mono"
+                  style={{ fontSize: 11.5, padding: "5px 12px", borderRadius: 20, cursor: "pointer", border: "none", background: voice === v ? "#3a2a1e" : "transparent", color: voice === v ? "#f2e8dd" : "var(--text-faint)", fontWeight: voice === v ? 600 : 400 }}>{label}</button>
+              ))}
+            </div>
+            {/* input pill */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 26, padding: "8px 8px 8px 16px", boxShadow: recording ? "0 0 26px var(--glow)" : "none", transition: "box-shadow 0.4s" }}>
+              <button onClick={() => fileRef.current?.click()} disabled={busy} title="Upload a clip"
+                style={{ background: "transparent", border: "none", color: "var(--text-dim)", fontSize: 18, cursor: busy ? "default" : "pointer", flexShrink: 0, opacity: busy ? 0.4 : 1 }}>&#128206;</button>
+              <input ref={fileRef} type="file" accept="audio/*" style={{ display: "none" }} onChange={(e) => e.target.files[0] && sendAudio(e.target.files[0])} />
               <input value={textInput} onChange={(e) => setTextInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") sendText(); }}
-                placeholder="Message Bru, or speak below..." disabled={busy}
-                style={{ width: "100%", padding: "6px 8px 10px", fontSize: 15, border: "none", background: "transparent", color: "var(--text)", outline: "none" }} />
-              {/* controls row */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {/* upload */}
-                <button onClick={() => fileRef.current?.click()} disabled={busy} title="Upload a clip"
-                  style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--line-2)", background: "transparent", color: "var(--text-dim)", fontSize: 18, cursor: busy ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: busy ? 0.4 : 1 }}>+</button>
-                <input ref={fileRef} type="file" accept="audio/*" style={{ display: "none" }} onChange={(e) => e.target.files[0] && sendAudio(e.target.files[0])} />
-
-                {/* brain dropdown */}
-                <div style={{ position: "relative" }}>
-                  <select value={provider} onChange={(e) => setProvider(e.target.value)}
-                    className="mono" style={{ appearance: "none", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--panel-2)", color: "var(--text-dim)", fontSize: 11.5, padding: "6px 24px 6px 10px", cursor: "pointer", outline: "none" }}>
-                    <option value="groq">Groq</option>
-                    <option value="gemini">Gemini</option>
-                  </select>
-                  <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--text-faint)", fontSize: 9 }}>▾</span>
-                </div>
-
-                {/* voice dropdown */}
-                <div style={{ position: "relative" }}>
-                  <select value={voice} onChange={(e) => setVoice(e.target.value)}
-                    className="mono" style={{ appearance: "none", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--panel-2)", color: "var(--text-dim)", fontSize: 11.5, padding: "6px 24px 6px 10px", cursor: "pointer", outline: "none" }}>
-                    <option value="piper">Piper</option>
-                    <option value="eleven">ElevenLabs</option>
-                  </select>
-                  <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--text-faint)", fontSize: 9 }}>▾</span>
-                </div>
-
-                {/* mini waveform */}
-                <div style={{ display: "flex", alignItems: "center", gap: 1.5, height: 26, flex: 1, overflow: "hidden", justifyContent: "center" }}>
-                  {bars.slice(0, 28).map((h, i) => (
-                    <span key={i} style={{ width: 2, height: Math.max(3, h * 22), background: recording ? "var(--accent)" : busy ? "var(--accent-2)" : "var(--line-2)", borderRadius: 3, transition: "height 0.08s ease, background 0.4s", opacity: recording || busy ? 1 : 0.55 }} />
-                  ))}
-                </div>
-
-                {/* text send (when typing) */}
-                {textInput.trim() && !recording && (
-                  <button onClick={sendText} disabled={busy}
-                    style={{ height: 34, padding: "0 16px", borderRadius: 17, border: "none", background: "var(--panel-3)", color: "var(--text)", fontWeight: 600, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>Send</button>
-                )}
-
-                {/* speak / stop */}
-                <button onClick={recording ? stopRecording : startRecording} disabled={busy}
-                  title={recording ? "Stop & send" : "Speak"}
-                  style={{ height: 34, padding: recording ? "0 16px" : "0", width: recording ? "auto" : 34, borderRadius: 17, border: "none", cursor: busy ? "default" : "pointer", background: recording ? "#c0472e" : busy ? "var(--panel-2)" : "linear-gradient(135deg, var(--accent), var(--accent-2))", color: recording || !busy ? "#241812" : "var(--text-faint)", opacity: busy ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexShrink: 0, fontWeight: 600, fontSize: 13, boxShadow: !busy && !recording ? "0 0 16px var(--glow)" : "none" }}>
-                  {recording ? (<><span style={{ width: 8, height: 8, borderRadius: 2, background: "#fff" }} /> Stop</>) : busy ? "..." : (<span style={{ fontSize: 15 }}>🎙</span>)}
-                </button>
-              </div>
+                placeholder="Tell Bru how you feel..." disabled={busy}
+                style={{ flex: 1, border: "none", background: "transparent", color: "var(--text)", fontSize: 15, outline: "none", minWidth: 0 }} />
+              {textInput.trim() && !recording && (
+                <button onClick={sendText} disabled={busy} style={{ height: 38, padding: "0 18px", borderRadius: 20, border: "none", background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#241812", fontWeight: 600, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>Send</button>
+              )}
+              <button onClick={recording ? stopRecording : startRecording} disabled={busy} title={recording ? "Stop & send" : "Speak"}
+                style={{ width: 42, height: 42, borderRadius: "50%", border: "none", cursor: busy ? "default" : "pointer", background: recording ? "#c0472e" : "linear-gradient(135deg, #4a3526, #2f2016)", color: recording ? "#fff" : "var(--text)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 16, boxShadow: recording ? "0 0 18px rgba(224,74,48,0.5)" : "none" }}>
+                {recording ? <span style={{ width: 10, height: 10, borderRadius: 2, background: "#fff" }} /> : busy ? "..." : "🎙"}
+              </button>
             </div>
-            <div className="mono" style={{ fontSize: 9, color: "var(--text-faint)", textAlign: "center", marginTop: 8, letterSpacing: "0.04em" }}>
-              7-model ensemble · Wav2Vec2 · {provider === "groq" ? "Groq" : "Gemini"} · {voice === "eleven" ? "ElevenLabs" : "Piper"}
+            <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-faint)", marginTop: 8 }}>
+              Type, upload audio, or tap the mic to speak.
             </div>
           </div>
         </div>
@@ -496,6 +522,7 @@ export default function Home() {
     </div>
   );
 }
+
 
 function ReplyContent({ text }) {
   let gifUrl = null;
