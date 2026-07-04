@@ -365,13 +365,11 @@ export default function Home() {
           </div>
         )}
 
-        {!isMobile && (
-          <div style={{ position: "absolute", right: 20, bottom: 130, zIndex: 2, pointerEvents: "none", opacity: 0.96 }}>
-            <BeanBuddy mood={currentMood} size={130} />
-          </div>
-        )}
+        <div style={{ position: "absolute", right: isMobile ? 8 : 20, bottom: isMobile ? 96 : 130, zIndex: 2, pointerEvents: "none", opacity: 0.9 }}>
+          <BeanBuddy mood={currentMood} size={isMobile ? 62 : 130} />
+        </div>
 
-        <div ref={threadRef} style={{ flex: 1, overflowY: "auto", padding: "30px 24px 20px" }}>
+        <div ref={threadRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "56px 14px 16px" : "30px 24px 20px", minHeight: 0 }}>
           <div style={{ maxWidth: 680, margin: "0 auto" }}>
             {(!active || active.turns.length === 0) && !busy && (
               <div className="fade-up" style={{ textAlign: "center", paddingTop: "9vh" }}>
@@ -432,9 +430,9 @@ export default function Home() {
           </div>
         </div>
 
-        <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg-2)", padding: "16px 24px 22px" }}>
+        <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg-2)", padding: isMobile ? "12px 12px calc(16px + env(safe-area-inset-bottom))" : "16px 24px 22px", flexShrink: 0 }}>
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
-            <div style={{ border: "1px solid var(--line-2)", borderRadius: 18, background: "var(--panel)", padding: "12px 14px 10px", boxShadow: recording ? "0 0 28px var(--glow)" : "none", transition: "box-shadow 0.4s" }}>
+            <div style={{ border: "1px solid var(--line-2)", borderRadius: 18, background: "var(--panel)", padding: isMobile ? "10px 10px 8px" : "12px 14px 10px", boxShadow: recording ? "0 0 28px var(--glow)" : "none", transition: "box-shadow 0.4s" }}>
               {/* text input row */}
               <input value={textInput} onChange={(e) => setTextInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") sendText(); }}
