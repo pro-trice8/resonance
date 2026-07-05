@@ -471,10 +471,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* BeanBuddy floating (during active chat) */}
-        {active && active.turns.length > 0 && (
-          <div style={{ position: "absolute", right: isMobile ? 8 : 20, bottom: isMobile ? 150 : 170, zIndex: 2, pointerEvents: "none", opacity: 0.9 }}>
-            <BeanBuddy mood={currentMood} size={isMobile ? 58 : 96} />
+        {/* BeanBuddy floating (during active chat, desktop only to avoid mobile overlap) */}
+        {active && active.turns.length > 0 && !isMobile && (
+          <div style={{ position: "absolute", right: 20, bottom: 170, zIndex: 2, pointerEvents: "none", opacity: 0.9 }}>
+            <BeanBuddy mood={currentMood} size={96} />
           </div>
         )}
 
@@ -482,7 +482,7 @@ export default function Home() {
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(18,13,10,0.85)", backdropFilter: "blur(10px)", padding: isMobile ? "12px 12px calc(14px + env(safe-area-inset-bottom))" : "16px 24px 20px", flexShrink: 0 }}>
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
             {/* pill toggles */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, justifyContent: "center", marginBottom: 12, flexWrap: "wrap", rowGap: 8 }}>
               <span className="mono" style={{ fontSize: 11, color: "var(--text-faint)" }}>Brain</span>
               {[["groq", "Groq"], ["gemini", "Gemini"]].map(([v, label]) => (
                 <button key={v} onClick={() => setProvider(v)} className="mono"
